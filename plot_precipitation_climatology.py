@@ -1,10 +1,10 @@
 import argparse
+
 import xarray as xr
-import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
 import numpy as np
 import cmocean
-
 
 def convert_pr_units(darray):
     """Converts units of precipitation from kg m-2 s-1 to mm/day. 
