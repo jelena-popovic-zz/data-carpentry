@@ -7,8 +7,9 @@ import cmocean
 
 
 def convert_pr_units(darray):
-    """Convert kg m-2 s-1 to mm day-1.
-    
+    """Converts units of precipitation from kg m-2 s-1 to mm/day. 
+    Changes atrribute of data array
+
     Args:
       darray (xarray.DataArray): Precipitation data
     
@@ -20,26 +21,30 @@ def convert_pr_units(darray):
     return darray
 
 
-def create_plot(clim, model, season, gridlines=False):
+def create_plot(darray,model,season,gridlines=False, levels=None):
     """Plot the precipitation climatology.
-    
+
     Args:
-      clim (xarray.DataArray): Precipitation climatology data
-      model (str): Name of the climate model
-      season (str): Season
+      darray (xarray.DataArray): Precipitation data
+      model (str) : Name of the climate model
+      season (str): Season (3 letter abbreviation, e.g. JJA)
       
-    Kwargs:
-      gridlines (bool): Select whether to plot gridlines    
-    
+    Kwargs: 
+      gridlines (bool): Select whether to plot gridlines
+      levels (list): Tick marks on the colorbar    
+
     """
+
+    if not levels:
+        levels = np.arange(0, 13.5, 1.5)
         
     fig = plt.figure(figsize=[12,5])
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180))
-    clim.sel(season=season).plot.contourf(ax=ax,
-                                          levels=np.arange(0, 13.5, 1.5),
+    darray.sel(season=season).plot.contourf(ax=ax,
+                                          levels=levels,
                                           extend='max',
                                           transform=ccrs.PlateCarree(),
-                                          cbar_kwargs={'label': clim.units},
+                                          cbar_kwargs={'label': darray.units},
                                           cmap=cmocean.cm.haline_r)
     ax.coastlines()
     if gridlines:
@@ -57,8 +62,10 @@ def main(inargs):
     clim = dset['pr'].groupby('time.season').mean('time', keep_attrs=True)
     clim = convert_pr_units(clim)
 
-    create_plot(clim, dset.attrs['source_id'], inargs.season)
+    create_plot(clim, dset.attrs['source_id'], inargs.season,
+                    gridlines=inargs.gridlines, levels=inargs.cbar_levels)
     plt.savefig(inargs.output_file, dpi=200)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -66,8 +73,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=description)
     
     parser.add_argument("pr_file", type=str, help="Precipitation data file")
-    parser.add_argument("season", type=str, help="Season to plot")
+    parser.add_argument("season", type=str, help="Season (3 letter abbreviation, e.g. JJA)")
     parser.add_argument("output_file", type=str, help="Output file name")
+    parser.add_argument("gridlines", type=bool, default=False,
+                        help="Include gridlines on the plot")
+    parser.add_argument("--cbar_levels", type=float, nargs='*', default=None,
+                        help='list of levels / tick marks to appear on the colorbar')
 
     args = parser.parse_args()
     
